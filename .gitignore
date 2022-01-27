@@ -156,3 +156,6 @@ cython_debug/
 
 # ok files
 .ok*
+
+# test.py
+test.py
