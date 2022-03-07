@@ -109,6 +109,7 @@ class Ant(Insect):
     is_container = False
     # ADD CLASS ATTRIBUTES HERE
     is_buffed = False
+    blocks_path = True
 
     def __init__(self, health=1):
         """Create an Insect with a HEALTH quantity."""
@@ -544,7 +545,7 @@ class Bee(Insect):
         """Return True if this Bee cannot advance to the next Place."""
         # Special handling for NinjaAnt
         # BEGIN Problem Optional 1
-        return self.place.ant is not None
+        return (self.place.ant is not None) and self.place.ant.blocks_path
         # END Problem Optional 1
 
     def action(self, gamestate):
@@ -574,9 +575,8 @@ class Bee(Insect):
 
         if self.blocked():
             self.sting(self.place.ant)
-        if self.health > 0 and destination is not None:
+        elif self.health > 0 and destination is not None:
             self.move_to(destination)
-        self.move_to(destination)
         
         if self.slowed_length > 0:
             self.slowed_length -= 1
@@ -625,12 +625,15 @@ class NinjaAnt(Ant):
     food_cost = 5
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem Optional 1
-    implemented = False   # Change to True to view in the GUI
+    implemented = True   # Change to True to view in the GUI
+    blocks_path = False
     # END Problem Optional 1
 
     def action(self, gamestate):
         # BEGIN Problem Optional 1
         "*** YOUR CODE HERE ***"
+        for key, bee in enumerate(self.place.bees[:]):
+            bee.reduce_health(self.damage)
         # END Problem Optional 1
 
 ############
@@ -675,8 +678,9 @@ class LaserAnt(ThrowerAnt):
     food_cost = 10
     # OVERRIDE CLASS ATTRIBUTES HERE
     # BEGIN Problem Optional 2
-    implemented = False   # Change to True to view in the GUI
+    implemented = True   # Change to True to view in the GUI
     # END Problem Optional 2
+    damage = 2
 
     def __init__(self, health=1):
         super().__init__(health)
@@ -684,12 +688,29 @@ class LaserAnt(ThrowerAnt):
 
     def insects_in_front(self):
         # BEGIN Problem Optional 2
-        return {}
+        place = self.place
+        insects = {}
+        distance = 0
+        if place.ant is not None and place.ant is not self:
+            insects[place.ant] = distance
+        for bee in place.bees:
+            insects[bee] = distance
+        while (place.entrance.is_hive is not True) and (place.entrance is not None) and (place is not None):
+            place = place.entrance
+            distance += 1
+            if place.ant is not None:
+                insects[place.ant] = distance 
+            for bee in place.bees:
+                insects[bee] = distance
+        return insects
         # END Problem Optional 2
 
     def calculate_damage(self, distance):
         # BEGIN Problem Optional 2
-        return 0
+        actual_damage = self.damage - 0.0625 * self.insects_shot - 0.25 * distance
+        if actual_damage <= 0:
+            actual_damage = 0
+        return actual_damage
         # END Problem Optional 2
 
     def action(self, gamestate):
